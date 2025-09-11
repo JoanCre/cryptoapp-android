@@ -22,11 +22,12 @@ class CryptoRepositoryImpl @Inject constructor(
     
     private fun CryptocurrencyDto.toDomain(): Cryptocurrency {
         val usdQuote = quote["USD"]
+        val priceValue = usdQuote?.price ?: 0.0
         return Cryptocurrency(
             id = id,
             name = name,
             symbol = symbol,
-            price = BigDecimal(usdQuote?.price ?: 0.0),
+            price = BigDecimal(priceValue.toString()),
             percentChange24h = usdQuote?.percentChange24h
         )
     }

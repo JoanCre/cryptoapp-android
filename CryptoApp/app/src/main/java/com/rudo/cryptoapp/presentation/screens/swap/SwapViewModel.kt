@@ -78,7 +78,7 @@ class SwapViewModel @Inject constructor(
 
                 // Calculate initial conversion if both cryptos are selected
                 val state = _uiState.value
-                if (state.fromCrypto != null && state.toCrypto != null && state.fromAmount > BigDecimal.ZERO) {
+                if (state.fromCrypto != null && state.toCrypto != null) {
                     calculateConversion()
                 }
 
@@ -125,9 +125,7 @@ class SwapViewModel @Inject constructor(
                 }
 
                 // Recalculate conversion with updated prices
-                if (_uiState.value.fromAmount > BigDecimal.ZERO) {
-                    calculateConversion()
-                }
+                calculateConversion()
 
             } catch (e: Exception) {
                 _uiState.update {
@@ -147,9 +145,7 @@ class SwapViewModel @Inject constructor(
                 showCryptoSelector = false
             )
         }
-        if (_uiState.value.fromAmount > BigDecimal.ZERO) {
-            calculateConversion()
-        }
+        calculateConversion()
     }
 
     private fun selectToCrypto(crypto: Cryptocurrency) {
@@ -159,9 +155,7 @@ class SwapViewModel @Inject constructor(
                 showCryptoSelector = false
             )
         }
-        if (_uiState.value.fromAmount > BigDecimal.ZERO) {
-            calculateConversion()
-        }
+        calculateConversion()
     }
 
     private fun updateFromAmount(amount: String) {
@@ -175,6 +169,7 @@ class SwapViewModel @Inject constructor(
         calculateConversion()
     }
 
+
     private fun swapCryptocurrencies() {
         val currentState = _uiState.value
         if (currentState.fromCrypto != null && currentState.toCrypto != null) {
@@ -186,6 +181,7 @@ class SwapViewModel @Inject constructor(
                     toAmount = currentState.fromAmount
                 )
             }
+            calculateConversion()
         }
     }
 
@@ -234,12 +230,19 @@ class SwapViewModel @Inject constructor(
         val fromCrypto = state.fromCrypto
         val toCrypto = state.toCrypto
 
-        if (fromCrypto != null && toCrypto != null && state.fromAmount > BigDecimal.ZERO) {
-            val result = cryptoUseCase.convertCrypto(fromCrypto, toCrypto, state.fromAmount)
+        if (fromCrypto != null && toCrypto != null) {
+            val conversionRate = cryptoUseCase.calculateConversionRate(fromCrypto, toCrypto)
+
+            val result = if (state.fromAmount > BigDecimal.ZERO) {
+                cryptoUseCase.convertCrypto(fromCrypto, toCrypto, state.fromAmount)
+            } else {
+                null
+            }
+
             _uiState.update {
                 it.copy(
-                    toAmount = result.toAmount,
-                    conversionRate = result.conversionRate,
+                    toAmount = result?.toAmount ?: BigDecimal.ZERO,
+                    conversionRate = conversionRate,
                     lastConversion = result
                 )
             }

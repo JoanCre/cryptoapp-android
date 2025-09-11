@@ -54,22 +54,57 @@ class CryptoUseCaseImpl @Inject constructor(
         )
     }
 
+    /**
+     * Calculates the conversion rate between two cryptocurrencies.
+     * 
+     * The conversion rate represents how much of the target cryptocurrency (toCrypto)
+     * you can get for 1 unit of the source cryptocurrency (fromCrypto).
+     * 
+     * Formula: rate = fromPrice / toPrice
+     * 
+     * Example:
+     * - XRP price: $3.03
+     * - BTC price: $113,944
+     * - Rate: 3.03 / 113,944 = 0.0000266 BTC per XRP
+     * 
+     * This means 1 XRP = 0.0000266 BTC
+     * 
+     * @param fromCrypto The source cryptocurrency to convert from
+     * @param toCrypto The target cryptocurrency to convert to
+     * @return The conversion rate with 8 decimal places precision, or ZERO if calculation fails
+     */
     override fun calculateConversionRate(
         fromCrypto: Cryptocurrency,
         toCrypto: Cryptocurrency
     ): BigDecimal {
-        // If same crypto rate is 1
-        if (fromCrypto.id == toCrypto.id) {
-            return BigDecimal.ONE
-        }
+        return try {
+            // Same cryptocurrency always has 1:1 rate
+            if (fromCrypto.id == toCrypto.id) {
+                return BigDecimal.ONE
+            }
 
-        // If either price is zero return zero to avoid division by zero
-        if (fromCrypto.price == BigDecimal.ZERO || toCrypto.price == BigDecimal.ZERO) {
-            return BigDecimal.ZERO
-        }
+            // Validate that prices are valid for calculation
+            if (!isPriceValid(fromCrypto.price) || !isPriceValid(toCrypto.price)) {
+                return BigDecimal.ZERO
+            }
 
-        // Conversion rate = fromPrice / toPrice
-        // Example: BTC ($50,000) to ETH ($3,000) = 50,000 / 3,000 = 16.67 ETH per BTC
-        return fromCrypto.price.divide(toCrypto.price, 8, RoundingMode.HALF_UP)
+            // Calculate conversion rate: fromPrice / toPrice
+            fromCrypto.price.divide(toCrypto.price, 8, RoundingMode.HALF_UP)
+        } catch (e: ArithmeticException) {
+            // Handle any division errors gracefully
+            BigDecimal.ZERO
+        }
+    }
+
+    /**
+     * Validates if a price is valid for conversion calculations.
+     * 
+     * @param price The price to validate
+     * @return true if price is valid (positive and not null), false otherwise
+     */
+    private fun isPriceValid(price: BigDecimal?): Boolean {
+        return price != null && 
+               price.compareTo(BigDecimal.ZERO) > 0 && 
+               price.compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) <= 0
     }
 }
