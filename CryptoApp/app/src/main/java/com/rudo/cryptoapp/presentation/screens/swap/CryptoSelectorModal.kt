@@ -15,18 +15,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.rudo.cryptoapp.domain.entities.Cryptocurrency
@@ -37,10 +37,13 @@ import com.rudo.cryptoapp.presentation.components.ModalHeader
 
 @Composable
 fun CryptoSelectorModal(
-    cryptocurrencies: List<Cryptocurrency>,
+    filteredCryptocurrencies: List<Cryptocurrency>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onCryptoSelect: (Cryptocurrency) -> Unit,
     onDismiss: () -> Unit
 ) {
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -72,12 +75,33 @@ fun CryptoSelectorModal(
                         onClose = onDismiss
                     )
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Search Field
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Search cryptocurrencies...") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     // Crypto List
                     LazyColumn(
                         modifier = Modifier.height(400.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(cryptocurrencies) { crypto ->
+                        items(filteredCryptocurrencies) { crypto ->
                             CryptoItem(
                                 crypto = crypto,
                                 onClick = { onCryptoSelect(crypto) }

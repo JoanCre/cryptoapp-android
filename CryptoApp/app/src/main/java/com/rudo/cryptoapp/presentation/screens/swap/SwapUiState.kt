@@ -16,7 +16,9 @@ data class SwapUiState(
     val conversionRate: BigDecimal = BigDecimal.ZERO,
     val lastConversion: ConversionResult? = null,
     val showCryptoSelector: Boolean = false,
-    val selectorType: CryptoSelectorType = CryptoSelectorType.FROM
+    val selectorType: CryptoSelectorType = CryptoSelectorType.FROM,
+    val searchQuery: String = "",
+    val filteredCryptocurrencies: List<Cryptocurrency> = emptyList()
 )
 
 enum class CryptoSelectorType {
@@ -33,9 +35,8 @@ sealed class SwapIntent {
     data object ShowFromCryptoSelector : SwapIntent()
     data object ShowToCryptoSelector : SwapIntent()
     data object HideCryptoSelector : SwapIntent()
+    data class UpdateSearchQuery(val query: String) : SwapIntent()
+    data object DismissError : SwapIntent()
 }
 
-sealed class SwapEffect {
-    data class ShowError(val message: String) : SwapEffect()
-    data object ConversionCompleted : SwapEffect()
-}
+sealed class SwapEffect { }

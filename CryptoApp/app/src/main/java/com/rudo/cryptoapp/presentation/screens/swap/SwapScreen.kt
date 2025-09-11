@@ -18,14 +18,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -34,8 +38,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.rudo.cryptoapp.domain.entities.Cryptocurrency
 import com.rudo.cryptoapp.presentation.components.ConversionRateText
 import com.rudo.cryptoapp.presentation.components.CryptoIcon
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.rudo.cryptoapp.presentation.components.PriceDisplay
 import java.math.BigDecimal
 
@@ -62,7 +66,7 @@ fun SwapScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Swap Coin",
+                        text = "Swap Cryptocurrencies",
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium
                     )
@@ -105,6 +109,7 @@ fun SwapScreen(
             SwapContent(
                 modifier = Modifier.padding(paddingValues),
                 uiState = uiState,
+                viewModel = viewModel,
                 onFromCryptoClick = {
                     viewModel.handleIntent(SwapIntent.ShowFromCryptoSelector)
                 },
@@ -136,12 +141,37 @@ fun SwapScreen(
             )
         }
     }
+
+    // Error Dialog
+    uiState.error?.let { errorMessage ->
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.handleIntent(SwapIntent.DismissError)
+            },
+            title = {
+                Text("Error")
+            },
+            text = {
+                Text(errorMessage)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.handleIntent(SwapIntent.DismissError)
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun SwapContent(
     modifier: Modifier = Modifier,
     uiState: SwapUiState,
+    viewModel: SwapViewModel,
     onFromCryptoClick: () -> Unit,
     onToCryptoClick: () -> Unit,
     onSwapClick: () -> Unit,
@@ -195,7 +225,8 @@ private fun SwapContent(
         // Conversion Result Card
         ConversionResultCard(
             fromCrypto = uiState.fromCrypto,
-            toCrypto = uiState.toCrypto
+            toCrypto = uiState.toCrypto,
+            conversionRate = uiState.conversionRate
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -204,7 +235,11 @@ private fun SwapContent(
     // Crypto Selector Modal
     if (uiState.showCryptoSelector) {
         CryptoSelectorModal(
-            cryptocurrencies = uiState.cryptocurrencies,
+            filteredCryptocurrencies = uiState.filteredCryptocurrencies,
+            searchQuery = uiState.searchQuery,
+            onSearchQueryChange = { query ->
+                viewModel.handleIntent(SwapIntent.UpdateSearchQuery(query))
+            },
             onCryptoSelect = onCryptoSelect,
             onDismiss = onDismissSelector
         )
@@ -287,15 +322,10 @@ private fun CryptoCard(
 @Composable
 private fun ConversionResultCard(
     fromCrypto: Cryptocurrency?,
-    toCrypto: Cryptocurrency?
+    toCrypto: Cryptocurrency?,
+    conversionRate: BigDecimal
 ) {
     if (fromCrypto != null && toCrypto != null) {
-        val conversionRate =
-            if (fromCrypto.price > BigDecimal.ZERO && toCrypto.price > BigDecimal.ZERO) {
-                fromCrypto.price.divide(toCrypto.price, 8, java.math.RoundingMode.HALF_UP)
-            } else {
-                BigDecimal.ZERO
-            }
 
         Card(
             modifier = Modifier.fillMaxWidth(),

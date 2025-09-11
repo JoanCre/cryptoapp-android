@@ -2,7 +2,6 @@ package com.rudo.cryptoapp.presentation.screens.swap
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rudo.cryptoapp.domain.entities.ConversionResult
 import com.rudo.cryptoapp.domain.entities.Cryptocurrency
 import com.rudo.cryptoapp.domain.usecase.CryptoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,20 +21,20 @@ import javax.inject.Inject
 class SwapViewModel @Inject constructor(
     private val cryptoUseCase: CryptoUseCase
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(SwapUiState())
     val uiState: StateFlow<SwapUiState> = _uiState.asStateFlow()
-    
+
     private val _effect = MutableSharedFlow<SwapEffect>()
     val effect: Flow<SwapEffect> = _effect
-    
+
     private var refreshJob: Job? = null
     private var autoRefreshJob: Job? = null
-    
+
     init {
         startAutoRefresh()
     }
-    
+
     fun handleIntent(intent: SwapIntent) {
         when (intent) {
             is SwapIntent.LoadCryptocurrencies -> loadCryptocurrencies()
@@ -47,120 +46,135 @@ class SwapViewModel @Inject constructor(
             is SwapIntent.ShowFromCryptoSelector -> showFromCryptoSelector()
             is SwapIntent.ShowToCryptoSelector -> showToCryptoSelector()
             is SwapIntent.HideCryptoSelector -> hideCryptoSelector()
+            is SwapIntent.UpdateSearchQuery -> updateSearchQuery(intent.query)
+            is SwapIntent.DismissError -> dismissError()
         }
     }
-    
+
     private fun loadCryptocurrencies() {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
                 val cryptocurrencies = cryptoUseCase.getCryptocurrencies()
-                
+
                 _uiState.update { currentState ->
                     currentState.copy(
                         isLoading = false,
                         cryptocurrencies = cryptocurrencies,
+                        filteredCryptocurrencies = filterCryptocurrencies(
+                            cryptocurrencies,
+                            currentState.searchQuery
+                        ),
                         fromCrypto = currentState.fromCrypto?.let { current ->
-                            cryptocurrencies.find { it.id == current.id } ?: cryptocurrencies.firstOrNull()
+                            cryptocurrencies.find { it.id == current.id }
+                                ?: cryptocurrencies.firstOrNull()
                         } ?: cryptocurrencies.firstOrNull(),
                         toCrypto = currentState.toCrypto?.let { current ->
-                            cryptocurrencies.find { it.id == current.id } ?: cryptocurrencies.getOrNull(1)
+                            cryptocurrencies.find { it.id == current.id }
+                                ?: cryptocurrencies.getOrNull(1)
                         } ?: cryptocurrencies.getOrNull(1)
                     )
                 }
-                
+
                 // Calculate initial conversion if both cryptos are selected
                 val state = _uiState.value
                 if (state.fromCrypto != null && state.toCrypto != null && state.fromAmount > BigDecimal.ZERO) {
                     calculateConversion()
                 }
-                
+
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        isLoading = false, 
-                        error = e.message ?: "Error loading cryptocurrencies"
-                    ) 
+                        isLoading = false,
+                        error = "Error loading cryptocurrencies"
+                    )
                 }
             }
         }
     }
-    
+
     private fun refreshCryptocurrencies() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isRefreshing = true, error = null) }
                 val cryptocurrencies = cryptoUseCase.refreshCryptocurrencies()
-                
+
                 _uiState.update { currentState ->
                     val updatedFromCrypto = currentState.fromCrypto?.let { current ->
-                        cryptocurrencies.find { it.id == current.id } ?: cryptocurrencies.firstOrNull()
+                        cryptocurrencies.find { it.id == current.id }
+                            ?: cryptocurrencies.firstOrNull()
                     } ?: cryptocurrencies.firstOrNull()
-                    
+
                     val updatedToCrypto = currentState.toCrypto?.let { current ->
-                        cryptocurrencies.find { it.id == current.id } ?: cryptocurrencies.getOrNull(1)
+                        cryptocurrencies.find { it.id == current.id } ?: cryptocurrencies.getOrNull(
+                            1
+                        )
                     } ?: cryptocurrencies.getOrNull(1)
-                    
+
                     currentState.copy(
                         isRefreshing = false,
                         cryptocurrencies = cryptocurrencies,
+                        filteredCryptocurrencies = filterCryptocurrencies(
+                            cryptocurrencies,
+                            currentState.searchQuery
+                        ),
                         fromCrypto = updatedFromCrypto,
                         toCrypto = updatedToCrypto
                     )
                 }
-                
+
                 // Recalculate conversion with updated prices
                 if (_uiState.value.fromAmount > BigDecimal.ZERO) {
                     calculateConversion()
                 }
-                
+
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        isRefreshing = false, 
-                        error = e.message ?: "Error refreshing cryptocurrencies"
-                    ) 
+                        isRefreshing = false,
+                        error = "Error refreshing cryptocurrencies"
+                    )
                 }
             }
         }
     }
-    
+
     private fun selectFromCrypto(crypto: Cryptocurrency) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 fromCrypto = crypto,
                 showCryptoSelector = false
-            ) 
+            )
         }
         if (_uiState.value.fromAmount > BigDecimal.ZERO) {
             calculateConversion()
         }
     }
-    
+
     private fun selectToCrypto(crypto: Cryptocurrency) {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 toCrypto = crypto,
                 showCryptoSelector = false
-            ) 
+            )
         }
         if (_uiState.value.fromAmount > BigDecimal.ZERO) {
             calculateConversion()
         }
     }
-    
+
     private fun updateFromAmount(amount: String) {
         val bigDecimalAmount = try {
             if (amount.isEmpty()) BigDecimal.ZERO else BigDecimal(amount)
         } catch (e: NumberFormatException) {
             return // Invalid number format, ignore
         }
-        
+
         _uiState.update { it.copy(fromAmount = bigDecimalAmount) }
         calculateConversion()
     }
-    
+
     private fun swapCryptocurrencies() {
         val currentState = _uiState.value
         if (currentState.fromCrypto != null && currentState.toCrypto != null) {
@@ -174,37 +188,37 @@ class SwapViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun showFromCryptoSelector() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showCryptoSelector = true,
                 selectorType = CryptoSelectorType.FROM
-            ) 
+            )
         }
     }
-    
+
     private fun showToCryptoSelector() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 showCryptoSelector = true,
                 selectorType = CryptoSelectorType.TO
-            ) 
+            )
         }
     }
-    
+
     private fun hideCryptoSelector() {
-        _uiState.update { 
-            it.copy(showCryptoSelector = false) 
+        _uiState.update {
+            it.copy(showCryptoSelector = false)
         }
     }
-    
+
     private fun startAutoRefresh() {
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
             // Initial load
             loadCryptocurrencies()
-            
+
             // Auto-refresh every minute
             while (true) {
                 delay(60_000) // 1 minute
@@ -214,32 +228,62 @@ class SwapViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun calculateConversion() {
         val state = _uiState.value
         val fromCrypto = state.fromCrypto
         val toCrypto = state.toCrypto
-        
+
         if (fromCrypto != null && toCrypto != null && state.fromAmount > BigDecimal.ZERO) {
             val result = cryptoUseCase.convertCrypto(fromCrypto, toCrypto, state.fromAmount)
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     toAmount = result.toAmount,
                     conversionRate = result.conversionRate,
                     lastConversion = result
-                ) 
+                )
             }
         } else {
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     toAmount = BigDecimal.ZERO,
                     conversionRate = BigDecimal.ZERO,
                     lastConversion = null
-                ) 
+                )
             }
         }
     }
-    
+
+    private fun updateSearchQuery(query: String) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                searchQuery = query,
+                filteredCryptocurrencies = filterCryptocurrencies(
+                    currentState.cryptocurrencies,
+                    query
+                )
+            )
+        }
+    }
+
+    private fun filterCryptocurrencies(
+        cryptocurrencies: List<Cryptocurrency>,
+        query: String
+    ): List<Cryptocurrency> {
+        return if (query.isBlank()) {
+            cryptocurrencies
+        } else {
+            cryptocurrencies.filter { crypto ->
+                crypto.name.contains(query, ignoreCase = true) ||
+                    crypto.symbol.contains(query, ignoreCase = true)
+            }
+        }
+    }
+
+    private fun dismissError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
     override fun onCleared() {
         super.onCleared()
         refreshJob?.cancel()
