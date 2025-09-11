@@ -56,19 +56,19 @@ class CryptoUseCaseImpl @Inject constructor(
 
     /**
      * Calculates the conversion rate between two cryptocurrencies.
-     * 
+     *
      * The conversion rate represents how much of the target cryptocurrency (toCrypto)
      * you can get for 1 unit of the source cryptocurrency (fromCrypto).
-     * 
+     *
      * Formula: rate = fromPrice / toPrice
-     * 
+     *
      * Example:
      * - XRP price: $3.03
      * - BTC price: $113,944
      * - Rate: 3.03 / 113,944 = 0.0000266 BTC per XRP
-     * 
+     *
      * This means 1 XRP = 0.0000266 BTC
-     * 
+     *
      * @param fromCrypto The source cryptocurrency to convert from
      * @param toCrypto The target cryptocurrency to convert to
      * @return The conversion rate with 8 decimal places precision, or ZERO if calculation fails
@@ -98,13 +98,13 @@ class CryptoUseCaseImpl @Inject constructor(
 
     /**
      * Validates if a price is valid for conversion calculations.
-     * 
+     *
      * @param price The price to validate
      * @return true if price is valid (positive and not null), false otherwise
      */
     private fun isPriceValid(price: BigDecimal?): Boolean {
-        return price != null && 
-               price.compareTo(BigDecimal.ZERO) > 0 && 
-               price.compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) <= 0
+        return price != null &&
+            price.compareTo(BigDecimal.ZERO) > 0 &&
+            price.compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) <= 0
     }
 }

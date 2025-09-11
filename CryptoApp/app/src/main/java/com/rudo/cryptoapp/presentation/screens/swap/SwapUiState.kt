@@ -39,4 +39,4 @@ sealed class SwapIntent {
     data object DismissError : SwapIntent()
 }
 
-sealed class SwapEffect { }
+sealed class SwapEffect

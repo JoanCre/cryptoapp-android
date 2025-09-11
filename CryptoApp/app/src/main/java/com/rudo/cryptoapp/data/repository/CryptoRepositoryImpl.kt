@@ -10,7 +10,7 @@ import javax.inject.Inject
 class CryptoRepositoryImpl @Inject constructor(
     private val remoteDataSource: CryptoDataSource
 ) : CryptoRepository {
-    
+
     override suspend fun getCryptocurrencies(): List<Cryptocurrency> {
         return try {
             val response = remoteDataSource.getCryptocurrencies()
@@ -19,7 +19,7 @@ class CryptoRepositoryImpl @Inject constructor(
             throw e
         }
     }
-    
+
     private fun CryptocurrencyDto.toDomain(): Cryptocurrency {
         val usdQuote = quote["USD"]
         val priceValue = usdQuote?.price ?: 0.0

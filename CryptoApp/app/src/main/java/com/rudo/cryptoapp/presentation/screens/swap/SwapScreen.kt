@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,8 +44,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.rudo.cryptoapp.domain.entities.Cryptocurrency
 import com.rudo.cryptoapp.presentation.components.ConversionRateText
 import com.rudo.cryptoapp.presentation.components.CryptoIcon
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import com.rudo.cryptoapp.presentation.components.PriceDisplay
 import java.math.BigDecimal
 

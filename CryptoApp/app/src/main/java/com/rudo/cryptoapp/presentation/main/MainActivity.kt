@@ -6,9 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.rememberNavController
-import dagger.hilt.android.AndroidEntryPoint
 import com.rudo.cryptoapp.presentation.navigation.AppNavHost
 import com.rudo.cryptoapp.presentation.ui.theme.MiAppTheme
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Main entry point of the application.
