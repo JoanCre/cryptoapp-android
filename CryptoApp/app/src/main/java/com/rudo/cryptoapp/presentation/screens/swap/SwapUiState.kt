@@ -30,7 +30,6 @@ sealed class SwapIntent {
     data object RefreshCryptocurrencies : SwapIntent()
     data class SelectFromCrypto(val crypto: Cryptocurrency) : SwapIntent()
     data class SelectToCrypto(val crypto: Cryptocurrency) : SwapIntent()
-    data class UpdateFromAmount(val amount: String) : SwapIntent()
     data object SwapCryptocurrencies : SwapIntent()
     data object ShowFromCryptoSelector : SwapIntent()
     data object ShowToCryptoSelector : SwapIntent()
@@ -38,5 +37,3 @@ sealed class SwapIntent {
     data class UpdateSearchQuery(val query: String) : SwapIntent()
     data object DismissError : SwapIntent()
 }
-
-sealed class SwapEffect

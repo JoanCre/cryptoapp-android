@@ -41,7 +41,6 @@ class SwapViewModel @Inject constructor(
             is SwapIntent.RefreshCryptocurrencies -> refreshCryptocurrencies()
             is SwapIntent.SelectFromCrypto -> selectFromCrypto(intent.crypto)
             is SwapIntent.SelectToCrypto -> selectToCrypto(intent.crypto)
-            is SwapIntent.UpdateFromAmount -> updateFromAmount(intent.amount)
             is SwapIntent.SwapCryptocurrencies -> swapCryptocurrencies()
             is SwapIntent.ShowFromCryptoSelector -> showFromCryptoSelector()
             is SwapIntent.ShowToCryptoSelector -> showToCryptoSelector()
@@ -157,18 +156,6 @@ class SwapViewModel @Inject constructor(
         }
         calculateConversion()
     }
-
-    private fun updateFromAmount(amount: String) {
-        val bigDecimalAmount = try {
-            if (amount.isEmpty()) BigDecimal.ZERO else BigDecimal(amount)
-        } catch (e: NumberFormatException) {
-            return // Invalid number format, ignore
-        }
-
-        _uiState.update { it.copy(fromAmount = bigDecimalAmount) }
-        calculateConversion()
-    }
-
 
     private fun swapCryptocurrencies() {
         val currentState = _uiState.value

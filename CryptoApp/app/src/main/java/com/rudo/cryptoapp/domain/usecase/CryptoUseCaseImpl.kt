@@ -104,7 +104,7 @@ class CryptoUseCaseImpl @Inject constructor(
      */
     private fun isPriceValid(price: BigDecimal?): Boolean {
         return price != null &&
-            price.compareTo(BigDecimal.ZERO) > 0 &&
-            price.compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) <= 0
+            price > BigDecimal.ZERO &&
+            price <= BigDecimal.valueOf(Double.MAX_VALUE)
     }
 }
